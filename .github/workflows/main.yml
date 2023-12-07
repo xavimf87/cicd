@@ -23,58 +23,23 @@ jobs:
   get-and-set-version:
     runs-on: ubuntu-latest
     outputs:
-      new_version: ${{ steps.set_new_version.outputs.version }}
+      new_version: ${{ steps.semver.outputs.nextStrict }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Get Last Tag Version
-        id: get_last_tag
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 || echo "0.0.0")
-          echo "Last tag version: $LAST_TAG"
-          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
-
-      - name: Get Convetional commit
-        uses: webiny/action-conventional-commits@v1.1.0
-        id: cc
+  
+      - name: Get Next Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
         with:
-          allowed-commit-types: "feat,fix"
-
-      - name: Set New Version
-        id: set_new_version
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 || echo "0.0.0")
-          echo "Last tag version: $LAST_TAG"
-
-          COMMITS=$(git log $LAST_TAG..HEAD --oneline)
-          MAJOR=0
-          MINOR=0
-          PATCH=0
-
-          for COMMIT in $COMMITS; do
-            if [[ $COMMIT == *"feat:"* ]]; then
-              MINOR=$((MINOR+1))
-            elif [[ $COMMIT == *"fix:"* ]]; then
-              PATCH=$((PATCH+1))
-            fi
-          done
-
-          IFS='.' read -ra ADDR <<< "$LAST_TAG"
-
-          if [ $MAJOR -ne 0 ]; then
-            NEW_VERSION="$((ADDR[0]+1)).0.0"
-          elif [ $MINOR -ne 0 ]; then
-            NEW_VERSION="${ADDR[0]}.$((ADDR[1]+1)).0"
-          elif [ $PATCH -ne 0 ]; then
-            NEW_VERSION="${ADDR[0]}.${ADDR[1]}.$((ADDR[2]+1))"
-          else
-            NEW_VERSION="$LAST_TAG"
-          fi
-
-          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+  
+      - name: Output New Version
+        run: echo "new_version=${{ steps.semver.outputs.next_version }}" >> $GITHUB_ENV
+          
+          
 
   linter:
     runs-on: ubuntu-latest
@@ -127,27 +92,20 @@ jobs:
         run: |
           git config --global user.name "$CI_USER"
           git config --global user.email "$CI_EMAIL"
-  
-      - name: Generate Changelog
-        id: changelog
-        uses: charmixer/auto-changelog-action@v1.2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release_branch: main
-          future_release: ${{ needs.get-and-set-version.outputs.new_version }}
-  
-      - name: Commit Changelog
-        run: |
-          git add CHANGELOG.md
-          git commit -m "Update Changelog"
-          git push
-  
+
       - name: Create and Push Tag
         run: |
           VERSION=${{ needs.get-and-set-version.outputs.new_version }}
           git tag $VERSION
-          git push origin $VERSION
-  
+          git push origin $VERSION 
+          
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.get-and-set-version.outputs.new_version }}   
+          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -157,3 +115,11 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
+          commit_message: 'docs: update CHANGELOG.md for ${{ needs.get-and-set-version.outputs.new_version }} [skip ci]'
+          file_pattern: CHANGELOG.md          
+  

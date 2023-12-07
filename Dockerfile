@@ -8,7 +8,7 @@ COPY requirements.txt /requirements.txt
 
 
 RUN apk --no-cache add git=2.40.1-r0 \
-    curl=8.4.0-r0 \
+    curl=8.5.0-r0 \
     xmlstarlet=1.6.1-r2 \ 
     exiftool=12.60-r0 \ 
     bash=5.2.15-r5 \
