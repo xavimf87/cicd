@@ -16,12 +16,12 @@ RUN apk --no-cache add git=2.40.1-r0 \
     yq=4.33.3-r5 \
     jq=1.6-r3 && \
     rm -rf /var/cache/apk/* && \
-    curl -sLS "https://dl.k8s.io/release/v1.23.4/bin/linux/amd64/kubectl" -o /usr/bin/kubectl && \
+    curl -sLS "https://dl.k8s.io/release/v1.28.4/bin/linux/amd64/kubectl" -o /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl && \
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 &&\
-    chmod +x get_helm.sh && ./get_helm.sh --version v3.11.0  && rm ./get_helm.sh && \   
+    chmod +x get_helm.sh && ./get_helm.sh --version v3.13.2  && rm ./get_helm.sh && \   
     chmod +x /usr/bin/semver && \
-    curl -Lo ./sops "https://github.com/mozilla/sops/releases/download/v3.8.0/sops-v3.8.0.linux.amd64" && \
+    curl -Lo ./sops "https://github.com/mozilla/sops/releases/download/v3.8.1/sops-v3.8.1.linux.amd64" && \
     chmod +x ./sops && mv ./sops /usr/local/bin/ && mkdir ~/.sops && \
     pip install --no-cache-dir -r requirements.txt
     
